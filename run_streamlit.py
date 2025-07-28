@@ -1,37 +1,53 @@
-from main import ChatBot
 import streamlit as st
+import subprocess
+import sys
+import os
 
-bot = ChatBot()
+def install_requirements():
+    """Install required packages"""
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+def main():
+    st.set_page_config(
+        page_title="Period Tracker Setup",
+        page_icon="🌸",
+        layout="centered"
+    )
     
-st.set_page_config(page_title="Random Fortune Telling Bot")
-with st.sidebar:
-    st.title('Random Fortune Telling Bot')
+    st.title("🌸 Period Tracker Application")
+    st.write("Welcome to your personal period tracking application!")
+    
+    # Check if requirements are installed
+    try:
+        import pandas
+        import plotly
+        requirements_installed = True
+    except ImportError:
+        requirements_installed = False
+    
+    if not requirements_installed:
+        st.warning("Installing required packages...")
+        if install_requirements():
+            st.success("Packages installed successfully! Please refresh the page.")
+            st.experimental_rerun()
+        else:
+            st.error("Failed to install packages. Please run: pip install -r requirements.txt")
+            return
+    
+    st.success("All requirements are installed!")
+    st.info("The Period Tracker application is ready to use!")
+    
+    # Import and run the main application
+    try:
+        from main import main as run_period_tracker
+        run_period_tracker()
+    except Exception as e:
+        st.error(f"Error running the application: {str(e)}")
+        st.info("Please make sure all dependencies are properly installed.")
 
-# Function for generating LLM response
-def generate_response(input):
-    result = bot.rag_chain.invoke(input)
-    return result
-
-# Store LLM generated responses
-if "messages" not in st.session_state.keys():
-    st.session_state.messages = [{"role": "assistant", "content": "Welcome, let's unveil your future"}]
-
-# Display chat messages
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-# User-provided prompt
-if input := st.chat_input():
-    st.session_state.messages.append({"role": "user", "content": input})
-    with st.chat_message("user"):
-        st.write(input)
-
-# Generate a new response if last message is not from assistant
-if st.session_state.messages[-1]["role"] != "assistant":
-    with st.chat_message("assistant"):
-        with st.spinner("Getting your answer from mystery stuff.."):
-            response = generate_response(input) 
-            st.write(response) 
-    message = {"role": "assistant", "content": response}
-    st.session_state.messages.append(message)
+if __name__ == "__main__":
+    main()
